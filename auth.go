@@ -350,7 +350,7 @@ func ParseCredsDockerConfig(config []byte, registry string) (string, error) {
 	fmt.Println("Cred configuration: ", creds)
 
 	provider, ok := creds.CredHelpers[registry]
-	fmt.Fprintln("Provider for registry %s is %s", registry, provider)
+	fmt.Println(fmt.Sprintf("Provider for registry %s is %s", registry, provider))
 	if ok {
 		return provider, nil
 	}
