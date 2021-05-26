@@ -104,7 +104,7 @@ func NewAuthConfigurationsFromFile(path string) (*AuthConfigurations, error) {
 	return NewAuthConfigurations(r)
 }
 
-func cfgPaths(dockerConfigEnv string, homeEnv string) []string {
+func CfgPaths(dockerConfigEnv string, homeEnv string) []string {
 	if dockerConfigEnv != "" {
 		return []string{
 			path.Join(dockerConfigEnv, "plaintext-passwords.json"),
@@ -295,17 +295,18 @@ type helperCredentials struct {
 // installed credentials helpers
 func NewAuthConfigurationsFromCredsHelpers(registry string) (*AuthConfiguration, error) {
 	// Load docker configuration file in order to find a possible helper provider
-	pathsToTry := cfgPaths(os.Getenv("DOCKER_CONFIG"), os.Getenv("HOME"))
+	pathsToTry := CfgPaths(os.Getenv("DOCKER_CONFIG"), os.Getenv("HOME"))
 	if len(pathsToTry) < 1 {
 		return nil, errors.New("no docker configuration found")
 	}
+	fmt.Println("Paths to try: ", pathsToTry)
 
-	provider, err := getHelperProviderFromDockerCfg(pathsToTry, registry)
+	provider, err := GetHelperProviderFromDockerCfg(pathsToTry, registry)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := getCredentialsFromHelper(provider, registry)
+	c, err := GetCredentialsFromHelper(provider, registry)
 	if err != nil {
 		return nil, err
 	}
@@ -316,15 +317,16 @@ func NewAuthConfigurationsFromCredsHelpers(registry string) (*AuthConfiguration,
 	return creds, nil
 }
 
-func getHelperProviderFromDockerCfg(pathsToTry []string, registry string) (string, error) {
+func GetHelperProviderFromDockerCfg(pathsToTry []string, registry string) (string, error) {
 	for _, path := range pathsToTry {
+		fmt.Println("Trying to get helper provider from", path)
 		content, err := ioutil.ReadFile(path)
 		if err != nil {
 			// if we can't read the file keep going
 			continue
 		}
 
-		provider, err := parseCredsDockerConfig(content, registry)
+		provider, err := ParseCredsDockerConfig(content, registry)
 		if err != nil {
 			continue
 		}
@@ -335,7 +337,7 @@ func getHelperProviderFromDockerCfg(pathsToTry []string, registry string) (strin
 	return "", errors.New("no docker credentials provider found")
 }
 
-func parseCredsDockerConfig(config []byte, registry string) (string, error) {
+func ParseCredsDockerConfig(config []byte, registry string) (string, error) {
 	creds := struct {
 		CredsStore  string            `json:"credsStore,omitempty"`
 		CredHelpers map[string]string `json:"credHelpers,omitempty"`
@@ -344,8 +346,10 @@ func parseCredsDockerConfig(config []byte, registry string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("Cred configuration: ", creds)
 
 	provider, ok := creds.CredHelpers[registry]
+	fmt.Fprintln("Provider for registry %s is %s", registry, provider)
 	if ok {
 		return provider, nil
 	}
@@ -353,8 +357,8 @@ func parseCredsDockerConfig(config []byte, registry string) (string, error) {
 }
 
 // Run and parse the found credential helper
-func getCredentialsFromHelper(provider string, registry string) (*helperCredentials, error) {
-	helpercreds, err := runDockerCredentialsHelper(provider, registry)
+func GetCredentialsFromHelper(provider string, registry string) (*helperCredentials, error) {
+	helpercreds, err := RunDockerCredentialsHelper(provider, registry)
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +372,7 @@ func getCredentialsFromHelper(provider string, registry string) (*helperCredenti
 	return c, nil
 }
 
-func runDockerCredentialsHelper(provider string, registry string) ([]byte, error) {
+func RunDockerCredentialsHelper(provider string, registry string) ([]byte, error) {
 	cmd := exec.Command("docker-credential-"+provider, "get")
 
 	var stdout bytes.Buffer
