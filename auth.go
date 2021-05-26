@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -136,7 +137,7 @@ func CfgPaths(dockerConfigEnv string, homeEnv string) []string {
 // - $HOME/.docker/config.json
 // - $HOME/.dockercfg
 func NewAuthConfigurationsFromDockerCfg() (*AuthConfigurations, error) {
-	pathsToTry := cfgPaths(os.Getenv("DOCKER_CONFIG"), os.Getenv("HOME"))
+	pathsToTry := CfgPaths(os.Getenv("DOCKER_CONFIG"), os.Getenv("HOME"))
 	if len(pathsToTry) < 1 {
 		return nil, errors.New("no docker configuration found")
 	}
